@@ -30,6 +30,9 @@ func New(log *slog.Logger, apodGetter AllAPODsGetter) http.HandlerFunc {
 		)
 
 		date := chi.URLParam(r, "date")
+
+		//TODO validate date
+
 		if date == "" {
 			log.Error("empty date")
 			render.JSON(w, r, resp.Error("empty date"))
