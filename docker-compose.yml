@@ -1,0 +1,30 @@
+services:
+  g_sheet_publisher:
+    build:
+      context: "../g_sheet_publisher"
+      dockerfile: Dockerfile
+    restart: always
+    hostname: g_sheet_publisher
+    environment:
+      - CONFIG_PATH=../../config/prod.yaml
+    networks:
+      - net
+
+  postgresql:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - net
+
+volumes:
+  postgres_data:
+
+networks:
+  net:
+    external: true
