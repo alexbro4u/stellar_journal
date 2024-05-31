@@ -45,7 +45,7 @@ func NewStorage(dbUri string) (*Storage, error) {
 	}
 
 	stmt2, err := db.Prepare(`
-    	CREATE INDEX IF NOT EXISTS nasa_apod_date_idx ON nasa_apod (date)
+    	CREATE INDEX IF NOT EXISTS nasa_apod_date_idx ON nasa_apod (apod_date)
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to create index: %w", op, err)
