@@ -59,7 +59,7 @@ func NewStorage(dbUri string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) SaveAPOD(apod *nasa_api_models.APODResp) (int64, error) {
+func (s *Storage) SaveAPOD(apod *nasa_api_models.APODResp) error {
 	const op = "internal/storage.postgresql.SaveAPOD"
 
 	stmt, err := s.db.Prepare(`
@@ -67,23 +67,18 @@ func (s *Storage) SaveAPOD(apod *nasa_api_models.APODResp) (int64, error) {
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`)
 	if err != nil {
-		return 0, fmt.Errorf("%s: failed to prepare statement: %w", op, err)
+		return fmt.Errorf("%s: failed to prepare statement: %w", op, err)
 	}
 
-	res, err := stmt.Exec(apod.Copyright, apod.Date, apod.Explanation, apod.Hdurl, apod.MediaType, apod.ServiceVersion, apod.Title, apod.Url)
+	_, err = stmt.Exec(apod.Copyright, apod.Date, apod.Explanation, apod.Hdurl, apod.MediaType, apod.ServiceVersion, apod.Title, apod.Url)
 	if err != nil {
 		if postgresErr, ok := err.(*pq.Error); ok && postgresErr.Code == "23505" {
-			return 0, fmt.Errorf("%s: failed to insert data: %w", op, storage.ErrAPODExists)
+			return fmt.Errorf("%s: failed to insert data: %w", op, storage.ErrAPODExists)
 		}
-		return 0, fmt.Errorf("%s: failed to insert data: %w", op, err)
+		return fmt.Errorf("%s: failed to insert data: %w", op, err)
 	}
 
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("%s: failed to get last insert id: %w", op, err)
-	}
-
-	return id, nil
+	return nil
 }
 
 func (s *Storage) GetAPOD(date string) (*stellar_journal_models.APOD, error) {

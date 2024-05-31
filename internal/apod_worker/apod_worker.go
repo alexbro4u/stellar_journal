@@ -13,7 +13,7 @@ type APODAPI interface {
 }
 
 type Storage interface {
-	SaveAPOD(apod *nasa_api_models.APODResp) (int64, error)
+	SaveAPOD(apod *nasa_api_models.APODResp) error
 }
 
 type APODWorkerImpl struct {
@@ -39,7 +39,7 @@ func (w *APODWorkerImpl) Run() {
 			continue
 		}
 
-		id, err := w.storage.SaveAPOD(apod)
+		err = w.storage.SaveAPOD(apod)
 		if err != nil {
 			if err == storage.ErrAPODExists {
 				w.logger.Info("APOD already exists, retrying in 1 hour")
@@ -48,7 +48,7 @@ func (w *APODWorkerImpl) Run() {
 			}
 			w.logger.Error("Failed to save APOD", sl.Err(err))
 		} else {
-			w.logger.Info("APOD saved successfully", slog.Int64("id", id))
+			w.logger.Info("APOD saved successfully")
 		}
 
 		time.Sleep(24 * time.Hour)
