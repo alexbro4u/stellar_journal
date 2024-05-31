@@ -11,7 +11,7 @@ type Config struct {
 	Env        string `yaml:"env" env-default:"local"`
 	HttpServer `yaml:"http_server"`
 	Storage    `yaml:"storage"`
-	NasaApi    `yaml:"nasa_api"`
+	NasaApi    `yaml:"nasa_api_models"`
 	CtxTimeout time.Duration `yaml:"ctx_timeout" env-default:"5s"`
 }
 

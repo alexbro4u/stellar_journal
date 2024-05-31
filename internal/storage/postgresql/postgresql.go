@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
-	"stellar_journal/internal/models/nasa_api"
-	"stellar_journal/internal/models/stellar_journal"
+	"stellar_journal/internal/models/nasa_api_models"
+	"stellar_journal/internal/models/stellar_journal_models"
 	"stellar_journal/internal/storage"
 )
 
@@ -59,7 +59,7 @@ func NewStorage(dbUri string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) SaveAPOD(apod *nasa_api.APODResp) (int64, error) {
+func (s *Storage) SaveAPOD(apod *nasa_api_models.APODResp) (int64, error) {
 	const op = "internal/storage.postgresql.SaveAPOD"
 
 	stmt, err := s.db.Prepare(`
@@ -86,7 +86,7 @@ func (s *Storage) SaveAPOD(apod *nasa_api.APODResp) (int64, error) {
 	return id, nil
 }
 
-func (s *Storage) GetAPOD(date string) (*stellar_journal.APOD, error) {
+func (s *Storage) GetAPOD(date string) (*stellar_journal_models.APOD, error) {
 	const op = "internal/storage.postgresql.GetAPOD"
 
 	stmt, err := s.db.Prepare(`
@@ -98,7 +98,7 @@ func (s *Storage) GetAPOD(date string) (*stellar_journal.APOD, error) {
 		return nil, fmt.Errorf("%s: failed to prepare statement: %w", op, err)
 	}
 
-	var apod stellar_journal.APOD
+	var apod stellar_journal_models.APOD
 	err = stmt.QueryRow(date).Scan(&apod.Id, &apod.Copyright, &apod.Date, &apod.Explanation, &apod.Hdurl, &apod.MediaType, &apod.ServiceVersion, &apod.Title, &apod.Url)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -110,7 +110,7 @@ func (s *Storage) GetAPOD(date string) (*stellar_journal.APOD, error) {
 	return &apod, nil
 }
 
-func (s *Storage) GetJournal() ([]stellar_journal.APOD, error) {
+func (s *Storage) GetJournal() ([]stellar_journal_models.APOD, error) {
 	const op = "internal/storage.postgresql.GetJournal"
 
 	stmt, err := s.db.Prepare(`
@@ -133,9 +133,9 @@ func (s *Storage) GetJournal() ([]stellar_journal.APOD, error) {
 		}
 	}(rows)
 
-	var apods []stellar_journal.APOD
+	var apods []stellar_journal_models.APOD
 	for rows.Next() {
-		var apod stellar_journal.APOD
+		var apod stellar_journal_models.APOD
 		err = rows.Scan(&apod.Id, &apod.Copyright, &apod.Date, &apod.Explanation, &apod.Hdurl, &apod.MediaType, &apod.ServiceVersion, &apod.Title, &apod.Url)
 		if err != nil {
 			return nil, fmt.Errorf("%s: failed to scan data: %w", op, err)

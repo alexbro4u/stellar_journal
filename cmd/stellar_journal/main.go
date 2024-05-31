@@ -3,8 +3,10 @@ package main
 import (
 	"log/slog"
 	"os"
+	"stellar_journal/internal/apod_worker"
 	"stellar_journal/internal/config"
 	"stellar_journal/internal/lib/logger/sl"
+	"stellar_journal/internal/stellar_api/nasa_api"
 	"stellar_journal/internal/storage/postgresql"
 )
 
@@ -27,11 +29,16 @@ func main() {
 
 	log.Debug("debug messages are enabled")
 
-	_, err := postgresql.NewStorage(cfg.Storage.DbUri)
+	storage, err := postgresql.NewStorage(cfg.Storage.DbUri)
 	if err != nil {
 		log.Error("failed to create storage", sl.Err(err))
 		os.Exit(1)
 	}
+
+	apiConn := nasa_api.NewNasaApiConnect(cfg.NasaApi.Host, cfg.NasaApi.Token)
+
+	apodWorker := apod_worker.NewAPODWorker(apiConn, storage, log)
+	go apodWorker.Run()
 
 }
 

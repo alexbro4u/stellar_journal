@@ -1,6 +1,6 @@
-package stellar_journal
+package nasa_api_models
 
-type APOD struct {
+type APODResp struct {
 	Copyright      string `json:"copyright"`
 	Date           string `json:"date"`
 	Explanation    string `json:"explanation"`
@@ -9,5 +9,4 @@ type APOD struct {
 	ServiceVersion string `json:"service_version"`
 	Title          string `json:"title"`
 	Url            string `json:"url"`
-	Id             int    `json:"id"`
 }
