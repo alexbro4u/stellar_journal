@@ -1,12 +1,12 @@
 services:
-  g_sheet_publisher:
+  stellar_journal:
     build:
-      context: "../g_sheet_publisher"
+      context: "../stellar_journal"
       dockerfile: Dockerfile
     restart: always
-    hostname: g_sheet_publisher
+    hostname: stellar_journal
     environment:
-      - CONFIG_PATH=../../config/prod.yaml
+      CONFIG_PATH: ${CONFIG_PATH}
     networks:
       - net
 
