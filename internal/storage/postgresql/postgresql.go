@@ -145,3 +145,14 @@ func (s *Storage) GetJournal() ([]stellar_journal_models.APOD, error) {
 
 	return apods, nil
 }
+
+func (s *Storage) Close() error {
+	const op = "internal/storage.postgresql.Close"
+
+	err := s.db.Close()
+	if err != nil {
+		return fmt.Errorf("%s: failed to close db: %w", op, err)
+	}
+
+	return nil
+}
