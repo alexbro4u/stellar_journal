@@ -110,7 +110,7 @@ func (s *Storage) GetAPOD(date string) (*stellar_journal_models.APOD, error) {
 	return &apod, nil
 }
 
-func (s *Storage) GetJournal() ([]stellar_journal_models.APOD, error) {
+func (s *Storage) GetJournal() (*[]stellar_journal_models.APOD, error) {
 	const op = "internal/storage.postgresql.GetJournal"
 
 	stmt, err := s.db.Prepare(`
@@ -143,7 +143,7 @@ func (s *Storage) GetJournal() ([]stellar_journal_models.APOD, error) {
 		apods = append(apods, apod)
 	}
 
-	return apods, nil
+	return &apods, nil
 }
 
 func (s *Storage) Close() error {

@@ -10,6 +10,8 @@ import (
 	"os/signal"
 	"stellar_journal/internal/apod_worker"
 	"stellar_journal/internal/config"
+	"stellar_journal/internal/http-server/handlers/journal/get/all"
+	"stellar_journal/internal/http-server/handlers/journal/get/by_date"
 	mwLg "stellar_journal/internal/http-server/middleware/logger"
 	"stellar_journal/internal/lib/logger/sl"
 	"stellar_journal/internal/stellar_api/nasa_api"
@@ -55,7 +57,8 @@ func main() {
 	router.Use(middleware.URLFormat)
 
 	router.Route("/journal", func(r chi.Router) {
-
+		r.Get("/", all.New(log, storage))
+		r.Get("/{date}", by_date.New(log, storage))
 	})
 
 	log.Info("starting server", slog.String("address", cfg.HttpServer.Host))
