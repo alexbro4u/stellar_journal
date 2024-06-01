@@ -36,12 +36,12 @@ func NewStorage(dbUri string) (*Storage, error) {
 		)
 	`)
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to create db: %w", op, err)
+		return nil, fmt.Errorf("%s: failed to create table: %w", op, err)
 	}
 
 	_, err = stmt1.Exec()
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to create db: %w", op, err)
+		return nil, fmt.Errorf("%s: failed to create table: %w", op, err)
 	}
 
 	stmt2, err := db.Prepare(`
