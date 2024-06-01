@@ -35,7 +35,7 @@ func (w *APODWorkerImpl) Run() {
 		apod, err := w.nasaApi.GetAPOD()
 		if err != nil {
 			w.logger.Error("Failed to get APOD", sl.Err(err))
-			time.Sleep(24 * time.Hour)
+			time.Sleep(1 * time.Hour)
 			continue
 		}
 

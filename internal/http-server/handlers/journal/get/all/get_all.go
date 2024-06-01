@@ -15,11 +15,12 @@ type Response struct {
 	Data []stellar_journal_models.APOD `json:"data"`
 }
 
-type APODGetter interface {
+//go:generate go run github.com/vektra/mockery/v2@v2.28.2 --name=JournalGetter
+type JournalGetter interface {
 	GetJournal() (*[]stellar_journal_models.APOD, error)
 }
 
-func New(log *slog.Logger, apodGetter APODGetter) http.HandlerFunc {
+func New(log *slog.Logger, journalGetter JournalGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.journal.get.New"
 
@@ -28,7 +29,7 @@ func New(log *slog.Logger, apodGetter APODGetter) http.HandlerFunc {
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
-		journals, err := apodGetter.GetJournal()
+		journals, err := journalGetter.GetJournal()
 		if err != nil {
 			log.Error("failed to get journals", sl.Err(err))
 

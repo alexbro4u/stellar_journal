@@ -1,6 +1,7 @@
 package by_date
 
 import (
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -9,6 +10,7 @@ import (
 	resp "stellar_journal/internal/lib/api/response"
 	"stellar_journal/internal/lib/logger/sl"
 	"stellar_journal/internal/models/stellar_journal_models"
+	"stellar_journal/internal/storage"
 )
 
 type Response struct {
@@ -16,11 +18,12 @@ type Response struct {
 	Data stellar_journal_models.APOD `json:"data"`
 }
 
-type AllAPODsGetter interface {
+//go:generate go run github.com/vektra/mockery/v2@v2.28.2 --name=APODByDateGetter
+type APODByDateGetter interface {
 	GetAPOD(date string) (*stellar_journal_models.APOD, error)
 }
 
-func New(log *slog.Logger, apodGetter AllAPODsGetter) http.HandlerFunc {
+func New(log *slog.Logger, apodGetter APODByDateGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.journal.get.New"
 
@@ -31,18 +34,21 @@ func New(log *slog.Logger, apodGetter AllAPODsGetter) http.HandlerFunc {
 
 		date := chi.URLParam(r, "date")
 
-		//TODO validate date
+		apod, err := apodGetter.GetAPOD(date)
+		if errors.Is(err, storage.ErrAPODNotFound) {
+			log.Error("apod not found", sl.Err(err))
 
-		if date == "" {
-			log.Error("empty date")
-			render.JSON(w, r, resp.Error("empty date"))
+			w.WriteHeader(http.StatusNotFound)
+			render.JSON(w, r, resp.Error("apod not found"))
+
 			return
 		}
-
-		apod, err := apodGetter.GetAPOD(date)
 		if err != nil {
-			log.Error("failed to get journal", sl.Err(err))
-			render.JSON(w, r, resp.Error("failed to get journal"))
+			log.Error("failed to get apod", sl.Err(err))
+
+			w.WriteHeader(http.StatusInternalServerError)
+			render.JSON(w, r, resp.Error("failed to get apod"))
+
 			return
 		}
 
