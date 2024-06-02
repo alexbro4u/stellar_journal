@@ -31,6 +31,7 @@ func NewAPODWorker(nasaApi APODAPI, storage Storage, logger *slog.Logger) *APODW
 }
 
 func (w *APODWorkerImpl) Run() {
+	errCount := 0
 	for {
 		apod, err := w.nasaApi.GetAPOD()
 		if err != nil {
@@ -40,17 +41,24 @@ func (w *APODWorkerImpl) Run() {
 		}
 
 		err = w.storage.SaveAPOD(apod)
-		if err != nil {
-			if err == storage.ErrAPODExists {
-				w.logger.Info("APOD already exists, retrying in 1 hour")
-				time.Sleep(1 * time.Hour)
-				continue
+		if err == storage.ErrAPODExists {
+			errCount++
+			waitTime := 1 * time.Hour
+			if errCount >= 2 {
+				waitTime = 24 * time.Hour
 			}
+			w.logger.Info("APOD already exists, retrying after wait time")
+			time.Sleep(waitTime)
+			continue
+		}
+
+		if err != nil {
 			w.logger.Error("Failed to save APOD", sl.Err(err))
 		} else {
 			w.logger.Info("APOD saved successfully")
 		}
 
+		errCount = 0
 		time.Sleep(24 * time.Hour)
 	}
 }
