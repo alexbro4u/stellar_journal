@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"embed"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"log/slog"
@@ -15,6 +18,7 @@ import (
 	mwLg "stellar_journal/internal/http-server/middleware/logger"
 	"stellar_journal/internal/lib/logger/sl"
 	"stellar_journal/internal/stellar_api/nasa_api"
+	mgr "stellar_journal/internal/storage/migrator"
 	"stellar_journal/internal/storage/postgresql"
 	"syscall"
 )
@@ -24,6 +28,9 @@ const (
 	envDev   = "dev"
 	envProd  = "prod"
 )
+
+//go:embed migrations/*.sql
+var embeddedFiles embed.FS
 
 func main() {
 	cfg := config.MustLoad()
@@ -38,7 +45,32 @@ func main() {
 
 	log.Debug("debug messages are enabled")
 
-	storage, err := postgresql.NewStorage(cfg.Storage.DbUri)
+	db, err := sql.Open("postgres", fmt.Sprintf("user=%s password=%s dbname=%s host=%s sslmode=disable", cfg.Storage.User, cfg.Storage.Password, cfg.Storage.Name, cfg.Storage.Host))
+	if err != nil {
+		log.Error("failed to connect to the database", sl.Err(err))
+		os.Exit(1)
+	}
+
+	dbDriver := &postgresql.PostgresDriver{}
+	migrator, err := mgr.NewMigrator(embeddedFiles, "migrations", dbDriver)
+	if err != nil {
+		log.Error("failed to create migrator", sl.Err(err))
+		os.Exit(1)
+	}
+
+	if err := migrator.ApplyMigrations(db, cfg.Storage.Name); err != nil {
+		log.Error("failed to apply migrations", sl.Err(err))
+		os.Exit(1)
+	}
+
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Error("failed to close db", sl.Err(err))
+		}
+	}(db)
+
+	storage, err := postgresql.NewStorage(cfg.Storage.User, cfg.Storage.Password, cfg.Storage.Name, cfg.Storage.Host)
 	if err != nil {
 		log.Error("failed to create storage", sl.Err(err))
 		os.Exit(1)
@@ -92,10 +124,6 @@ func main() {
 		log.Error("failed to stop server", sl.Err(err))
 
 		return
-	}
-
-	if err := storage.Close(); err != nil {
-		log.Error("failed to close storage", sl.Err(err))
 	}
 
 	log.Info("server stopped")

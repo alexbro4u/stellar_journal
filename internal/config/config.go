@@ -23,7 +23,11 @@ type HttpServer struct {
 }
 
 type Storage struct {
-	DbUri string `yaml:"db_uri" env-required:"true"`
+	MigrationsPath string `yaml:"migrations_path" env-required:"true"`
+	Name           string `yaml:"db_name" env-required:"true"`
+	User           string `yaml:"db_user" env-required:"true"`
+	Password       string `yaml:"db_password" env-required:"true"`
+	Host           string `yaml:"db_host" env-required:"true"`
 }
 
 type NasaApi struct {

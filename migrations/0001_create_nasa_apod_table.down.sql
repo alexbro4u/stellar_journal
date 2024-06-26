@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS nasa_apod;

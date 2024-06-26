@@ -3,6 +3,8 @@ package postgresql
 import (
 	"database/sql"
 	"fmt"
+	"github.com/golang-migrate/migrate/v4/database"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"stellar_journal/internal/models/nasa_api_models"
@@ -10,59 +12,32 @@ import (
 	"stellar_journal/internal/storage"
 )
 
-type Storage struct {
-	db *sql.DB
+type PostgresDriver struct{}
+
+func (d *PostgresDriver) Open(db *sql.DB) (database.Driver, error) {
+	return postgres.WithInstance(db, &postgres.Config{})
 }
 
-func NewStorage(dbUri string) (*Storage, error) {
-	const op = "internal/storage.postgresql.NewStorage"
+type Storage struct {
+	DB     *sql.DB
+	Driver *PostgresDriver
+}
 
-	db, err := sql.Open("postgres", dbUri)
+func NewStorage(user, pass, name, host string) (*Storage, error) {
+	const op = "internal/storage/postgresql.NewStorage"
+
+	db, err := sql.Open("postgres", fmt.Sprintf("user=%s password=%s dbname=%s host=%s sslmode=disable", user, pass, name, host))
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to connect to the database: %w", op, err)
 	}
 
-	stmt1, err := db.Prepare(`
-		CREATE TABLE IF NOT EXISTS nasa_apod (
-			id SERIAL PRIMARY KEY,
-			copyright TEXT,
-			apod_date DATE UNIQUE,
-			explanation TEXT,
-			hdurl TEXT,
-			media_type TEXT,
-			service_version TEXT,
-			title TEXT,
-			url TEXT
-		)
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("%s: failed to create table: %w", op, err)
-	}
-
-	_, err = stmt1.Exec()
-	if err != nil {
-		return nil, fmt.Errorf("%s: failed to create table: %w", op, err)
-	}
-
-	stmt2, err := db.Prepare(`
-    	CREATE INDEX IF NOT EXISTS nasa_apod_date_idx ON nasa_apod (apod_date)
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("%s: failed to create index: %w", op, err)
-	}
-
-	_, err = stmt2.Exec()
-	if err != nil {
-		return nil, fmt.Errorf("%s: failed to create index: %w", op, err)
-	}
-
-	return &Storage{db: db}, nil
+	return &Storage{DB: db}, nil
 }
 
 func (s *Storage) SaveAPOD(apod *nasa_api_models.APODResp) error {
-	const op = "internal/storage.postgresql.SaveAPOD"
+	const op = "internal/storage/postgresql.SaveAPOD"
 
-	stmt, err := s.db.Prepare(`
+	stmt, err := s.DB.Prepare(`
 		INSERT INTO nasa_apod (copyright, apod_date, explanation, hdurl, media_type, service_version, title, url)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`)
@@ -82,9 +57,9 @@ func (s *Storage) SaveAPOD(apod *nasa_api_models.APODResp) error {
 }
 
 func (s *Storage) GetAPOD(date string) (*stellar_journal_models.APOD, error) {
-	const op = "internal/storage.postgresql.GetAPOD"
+	const op = "internal/storage/postgresql.GetAPOD"
 
-	stmt, err := s.db.Prepare(`
+	stmt, err := s.DB.Prepare(`
 		SELECT id, copyright, apod_date, explanation, hdurl, media_type, service_version, title, url
 		FROM nasa_apod
 		WHERE apod_date = $1
@@ -106,9 +81,9 @@ func (s *Storage) GetAPOD(date string) (*stellar_journal_models.APOD, error) {
 }
 
 func (s *Storage) GetJournal() (*[]stellar_journal_models.APOD, error) {
-	const op = "internal/storage.postgresql.GetJournal"
+	const op = "internal/storage/postgresql.GetJournal"
 
-	stmt, err := s.db.Prepare(`
+	stmt, err := s.DB.Prepare(`
 		SELECT id, copyright, apod_date, explanation, hdurl, media_type, service_version, title, url
 		FROM nasa_apod
 		ORDER BY apod_date DESC
@@ -142,9 +117,9 @@ func (s *Storage) GetJournal() (*[]stellar_journal_models.APOD, error) {
 }
 
 func (s *Storage) Close() error {
-	const op = "internal/storage.postgresql.Close"
+	const op = "internal/storage/postgresql.Close"
 
-	err := s.db.Close()
+	err := s.DB.Close()
 	if err != nil {
 		return fmt.Errorf("%s: failed to close db: %w", op, err)
 	}
